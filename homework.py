@@ -36,7 +36,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    
+    pass
 
 
 # def parse_status(homework):
@@ -56,11 +56,9 @@ def check_response(response):
 #     ...
 
 
-def main():
-    """Основная логика работы бота."""
-    print(get_api_answer(0))
-    check_response(get_api_answer)
-    print(check_response(get_api_answer(0)))
+# def main():
+#     """Основная логика работы бота."""
+
 #     ...
 
 #     bot = telegram.Bot(token=TELEGRAM_TOKEN)
