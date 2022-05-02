@@ -59,8 +59,6 @@ def check_response(response):
     homeworks = response['homeworks']
     if homeworks is None:
         raise KeyError('Не содержит ключ или пустое значение.')
-    if not isinstance(homeworks, list):
-        raise TypeError('Неверный формат homework.')
     if not homeworks:
         return False
     homeworks_status = response['homeworks'][0].get('status')
