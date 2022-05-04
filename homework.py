@@ -119,7 +119,7 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-    current_timestamp = 0
+    current_timestamp = int(time.time())
     bot = Bot(token=TELEGRAM_TOKEN)
     if check_tokens() is not True:
         raise ValueError('Беда с токенами.')
