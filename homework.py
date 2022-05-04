@@ -86,7 +86,6 @@ def check_response(response):
 
 def parse_status(homework):
     """Проверяем статус."""
-    pprint(homework)
     if isinstance(homework, dict):
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
