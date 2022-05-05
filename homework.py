@@ -133,9 +133,10 @@ def main():
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
             if len(response['homeworks']) > 0:
-                homework = response['homeworks']
-                send_message(bot, parse_status(homework))
-                logger.info('Сообщение отправлено')
+                for homework in homeworks:
+                    homework = response['homeworks']
+                    send_message(bot, parse_status(homework))
+                    logger.info('Сообщение отправлено')
             current_timestamp = int(time.time())
             time.sleep(RETRY_TIME)
         except Exception as error:
