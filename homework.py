@@ -44,7 +44,6 @@ def send_message(bot, message):
             f'Сбой при отправке в Телеграмм сообщения "{message}"',
             exc_info=True
         )
-    return True
 
 
 def get_api_answer(current_timestamp):
@@ -56,20 +55,15 @@ def get_api_answer(current_timestamp):
     except ConnectionError as error:
         logger.error(f'Нет соединения{error}')
     try:
-        homework_statuses = requests.get(ENDPOINT, headers=HEADERS,
-                                         params=params)
         if homework_statuses.status_code != HTTPStatus.OK:
             logger.error(f'Ошибка API {homework_statuses.status_code}')
             raise ConnectionError('Ошибка соединения')
     except requests.exceptions.RequestException as error:
         logger.error(f'Сервер Яндекс.Практикум вернул ошибку: {error}.')
-        send_message(f'Сервер Яндекс.Практикум вернул ошибку: {error}.')
         raise RuntimeError('Сервер Яндекс.Практикум вернул ошибку')
     try:
         return homework_statuses.json()
     except json.JSONDecodeError:
-        logger.error('Сервер вернул невалидный json.')
-        send_message('Сервер вернул невалидный json.')
         raise requests.JSONDecodeError('Сервер вернул невалидный json.')
 
 
@@ -79,8 +73,8 @@ def check_response(response):
         raise TypeError('Ошибка типа')
     homeworks = response.get('homeworks')
     if homeworks is None:
-        logger.error('Неверный ключ')
-        raise Exception('Неверный ключ')
+        logger.error('API не содержит ключ')
+        raise Exception('API не содержит ключ')
     if type(homeworks) is not list:
         raise TypeError('Ошибка типа')
     return homeworks
@@ -91,20 +85,20 @@ def parse_status(homework):
     if isinstance(homework, dict):
         homework_name = homework.get('homework_name')
         homework_status = homework.get('status')
-
-        if homework_status not in HOMEWORK_STATUSES:
+        if homework_name is None:
+            logger.error('Отсутствует ключ homework_name')
+            raise KeyError('Отсутствует ключ homework_name')
+        elif homework_status not in HOMEWORK_STATUSES:
             logger.error('Недокументированный статус')
             raise KeyError('Отстутствует ключ')
         else:
             verdict = HOMEWORK_STATUSES.get(homework_status)
-            if ((verdict is None) or (verdict == '')) or ((
-                    verdict != 'approved') and (
-                    verdict != 'reviewing') and (verdict != 'rejected')):
+            if verdict is not None:
                 logger.error(f'Статус работы некорректен: {homework_status}')
             return (f'Изменился статус проверки работы "{homework_name}".'
                     f'{verdict}')
     else:
-        logger.error('Ошибка')
+        logger.error('Ошибка типа!')
         raise TypeError(f'Ошибка типа! Проверь {homework}')
 
 
@@ -113,12 +107,10 @@ def check_tokens():
     if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         return True
     else:
-        if PRACTICUM_TOKEN is None:
-            logger.critical('отсутствует : PRACTICUM_TOKEN')
-        if TELEGRAM_TOKEN is None:
-            logger.critical('отсутствует : TELEGRAM_TOKEN')
-        if TELEGRAM_CHAT_ID is None:
-            logger.critical('отсутствует : TELEGRAM_CHAT_ID')
+        all_token = PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
+        [(f'{logger.critical}("отсутствует : {token}")')
+            for token in all_token if token is None]
+
     return False
 
 
@@ -126,23 +118,27 @@ def main():
     """Основная логика работы бота."""
     current_timestamp = int(time.time()) - RETRY_TIME
     bot = Bot(token=TELEGRAM_TOKEN)
+    new_error = ''
     if check_tokens() is not True:
         raise ValueError('Беда с токенами.')
     while True:
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            if len(response['homeworks']) > 0:
-                for homework in homeworks:
-                    homework = response['homeworks']
-                    send_message(bot, parse_status(homework))
-                    logger.info('Сообщение отправлено')
-            current_timestamp = int(time.time())
-            time.sleep(RETRY_TIME)
+            if len(homeworks) > 0:
+                send_message(bot, parse_status(response['homeworks']))
+                logger.info('Сообщение отправлено')
+                current_timestamp = response.get(
+                    'current_date', current_timestamp)
         except Exception as error:
-            logger.error(f'Сбой в работе программы: {error}')
-            message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
+            error_message = f'Сбой в работе программы: {error}'
+            logger.error(error_message, exc_info=True)
+            if error_message != new_error:
+                send_message(bot, error_message)
+            else:
+                new_error = error_message
+        finally:
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
