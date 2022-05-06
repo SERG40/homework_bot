@@ -108,10 +108,12 @@ def check_tokens():
     if all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]):
         return True
     else:
-        all_token = PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
-        [(f'{logger.critical}("отсутствует : {token}")')
-            for token in all_token if token is None]
-
+        if PRACTICUM_TOKEN is None: 
+            logger.critical('отсутствует : PRACTICUM_TOKEN') 
+        if TELEGRAM_TOKEN is None: 
+            logger.critical('отсутствует : TELEGRAM_TOKEN') 
+        if TELEGRAM_CHAT_ID is None: 
+            logger.critical('отсутствует : TELEGRAM_CHAT_ID')
     return False
 
 
