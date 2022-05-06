@@ -54,6 +54,7 @@ def get_api_answer(current_timestamp):
                                          params=params)
     except ConnectionError as error:
         logger.error(f'Нет соединения{error}')
+        raise ConnectionError(f'Нет соединения{error}')
     try:
         if homework_statuses.status_code != HTTPStatus.OK:
             logger.error(f'Ошибка API {homework_statuses.status_code}')
