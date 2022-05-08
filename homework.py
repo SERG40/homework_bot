@@ -6,7 +6,7 @@ import requests
 import time
 
 from http import HTTPStatus
-from telegram import Bot, TelegramError
+from telegram import Bot
 from dotenv import load_dotenv
 
 logging.basicConfig(
@@ -36,14 +36,8 @@ HOMEWORK_STATUSES = {
 
 def send_message(bot, message):
     """Отправляем сообщение в ТГ."""
-    try:
-        bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.info(f'Бот отправил сообщение {message}')
-    except TelegramError:
-        logger.error(
-            f'Сбой при отправке в Телеграмм сообщения "{message}"',
-            exc_info=True
-        )
+    bot.send_message(TELEGRAM_CHAT_ID, message)
+    logger.info(f'Бот отправил сообщение {message}')
 
 
 def get_api_answer(current_timestamp):
@@ -71,13 +65,13 @@ def get_api_answer(current_timestamp):
 def check_response(response):
     """Проверяем response."""
     if not isinstance(response, dict):
-        raise TypeError('Ошибка типа')
+        raise TypeError('Ошибка типа указанного класса нужен словарь')
     homeworks = response.get('homeworks')
     if homeworks is None:
         logger.error('API не содержит ключ')
         raise Exception('API не содержит ключ')
     if type(homeworks) is not list:
-        raise TypeError('Ошибка типа')
+        raise TypeError('Ошибка типа передается не список')
     return homeworks
 
 
@@ -95,9 +89,12 @@ def parse_status(homework):
         else:
             verdict = HOMEWORK_STATUSES.get(homework_status)
             if verdict is not None:
+                return (f'Изменился статус проверки работы "{homework_name}".'
+                        f'{verdict}')
+            else:
                 logger.error(f'Статус работы некорректен: {homework_status}')
-            return (f'Изменился статус проверки работы "{homework_name}".'
-                    f'{verdict}')
+                raise Exception(
+                    f'Статус работы некорректен: {homework_status}')
     else:
         logger.error('Ошибка типа!')
         raise TypeError(f'Ошибка типа! Проверь {homework}')
@@ -128,11 +125,10 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
+            current_timestamp = response.get('current_date', current_timestamp)
             if len(homeworks) > 0:
                 send_message(bot, parse_status(response['homeworks']))
                 logger.info('Сообщение отправлено')
-                current_timestamp = response.get(
-                    'current_date', current_timestamp)
         except Exception as error:
             error_message = f'Сбой в работе программы: {error}'
             logger.error(error_message, exc_info=True)
