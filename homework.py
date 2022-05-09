@@ -125,10 +125,10 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             homeworks = check_response(response)
-            current_timestamp = response.get('current_date', current_timestamp)
             if len(homeworks) > 0:
                 send_message(bot, parse_status(response['homeworks']))
                 logger.info('Сообщение отправлено')
+            current_timestamp = response.get('current_date', current_timestamp)
         except Exception as error:
             error_message = f'Сбой в работе программы: {error}'
             logger.error(error_message, exc_info=True)
